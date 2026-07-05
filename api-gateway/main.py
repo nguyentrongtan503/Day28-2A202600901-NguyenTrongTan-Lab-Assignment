@@ -1,7 +1,7 @@
 # api-gateway/main.py
 from fastapi import FastAPI, Request
 from prometheus_fastapi_instrumentator import Instrumentator
-import httpx, os, time, langsmith
+import httpx, os, time
 
 app = FastAPI(title="AI Platform API Gateway")
 Instrumentator().instrument(app).expose(app)  # Integration 9: Prometheus
