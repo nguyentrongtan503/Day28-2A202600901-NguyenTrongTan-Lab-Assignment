@@ -4,14 +4,15 @@ version: "3.9"
 services:
   # ── Kafka Stack ──────────────────────────────────────────
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
+    image: dockerhub.timeweb.cloud/confluentinc/cp-zookeeper:7.5.0
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
     ports:
       - "2181:2181"
 
   kafka:
-    image: confluentinc/cp-kafka:7.5.0
+    image: dockerhub.timeweb.cloud/confluentinc/cp-kafka:7.5.0
+    container_name: lab28-kafka-1
     depends_on: [zookeeper]
     ports:
       - "9092:9092"
@@ -23,7 +24,7 @@ services:
 
   # ── Prefect ───────────────────────────────────────────────
   prefect-orion:
-    image: prefecthq/prefect:2.14.0-python3.10
+    image: dockerhub.timeweb.cloud/prefecthq/prefect:2.14.0-python3.10
     command: prefect server start --host 0.0.0.0
     ports:
       - "4200:4200"
@@ -31,9 +32,10 @@ services:
       - prefect_data:/root/.prefect
 
   prefect-worker:
-    image: prefecthq/prefect:2.14.0-python3.10
+    image: dockerhub.timeweb.cloud/prefecthq/prefect:2.14.0-python3.10
     command: >
-      sh -c "prefect work-pool create --type process lab28-worker 2>/dev/null || true
+      sh -c "pip install -r /opt/prefect/flows/requirements.txt
+      && prefect work-pool create --type process lab28-worker 2>/dev/null || true
       && prefect worker start -p lab28-worker -n lab28-worker"
     environment:
       PREFECT_API_URL: http://prefect-orion:4200/api
@@ -45,7 +47,7 @@ services:
 
   # ── Vector Store (Qdrant) ─────────────────────────────────
   qdrant:
-    image: qdrant/qdrant:latest
+    image: dockerhub.timeweb.cloud/qdrant/qdrant:latest
     ports:
       - "6333:6333"
     volumes:
@@ -53,20 +55,20 @@ services:
 
   # ── Feature Store (Feast via Redis) ──────────────────────
   redis:
-    image: redis:7-alpine
+    image: dockerhub.timeweb.cloud/redis:7-alpine
     ports:
       - "6379:6379"
 
   # ── Monitoring Stack ──────────────────────────────────────
   prometheus:
-    image: prom/prometheus:latest
+    image: dockerhub.timeweb.cloud/prom/prometheus:latest
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
 
   grafana:
-    image: grafana/grafana:latest
+    image: dockerhub.timeweb.cloud/grafana/grafana:latest
     depends_on: [prometheus]
     ports:
       - "3000:3000"
@@ -82,6 +84,8 @@ services:
       VLLM_URL: ${VLLM_NGROK_URL}
       QDRANT_URL: http://qdrant:6333
       REDIS_URL: redis://redis:6379
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on: [qdrant, redis]
 
 volumes:
